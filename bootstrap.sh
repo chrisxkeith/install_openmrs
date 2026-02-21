@@ -15,6 +15,9 @@
 # - You are willing to wait (at least) a few minutes.
 
 set -x
+
+if false ; then # temporarily disable the code block below while I test it in pieces
+
 if [ -z "$GITHUB_USERNAME" ] ; then
 	echo "Please set the GITHUB_USERNAME environment variable to your github username."
 	echo "Example: export GITHUB_USERNAME=chrisxkeith"
@@ -65,10 +68,31 @@ if [ $? -ne 0 ] ; then
 	echo "Failed to clone repo."
 	exit -671
 fi
+
+fi # end of temporarily disabled code block
+
 cd openmrs-core
-# docker run -d --name mysql-container -e MYSQL_ROOT_PASSWORD=pass -p 3306:3306 mysql:latest
-# mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
-# mvn openmrs-sdk:help
-# mvn openmrs-sdk:setup
-# ----- with input file
-# mvn openmrs-sdk:run -DserverId=server1
+docker container ls -a | grep openmrs-sdk-mysql-v8-4-1 > docker-container-ls.log
+if [ `wc -l < docker-container-ls.log` -eq 0 ] ; then
+	# Container not created. Create it.
+	docker run --detach --name openmrs-sdk-mysql-v8-4-1 --env MYSQL_ROOT_PASSWORD=yourSql -p "3306:3306" -v openmrs-data:/var/lib/mysql:z mysql:8.4.1 2>&1 | tee docker-run-output.log
+	if [ $? -ne 0 ] ; then
+		echo "Failed to start mysql docker container."
+		exit -672
+	fi
+	cat docker-run-output.log | grep -i "Error" > docker-run-error.log
+	errs=`cat docker-run-error.log | wc -l`
+	if [ $errs -gt 0 ] ; then
+		echo "Error starting mysql docker container."
+		cat docker-run-error.log
+		exit -673
+	fi
+else
+	echo "Add code to run the container if it is not running."
+fi
+
+# mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk 2>&1 | tee setup-sdk-output.log
+# mvn openmrs-sdk:help  2>&1 | tee setup-sdk-help-output.log
+# mvn openmrs-sdk:setup < ../install_openmrs/input.txt 2>&1 | tee setup-sdk-input-output.log
+# mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
+# mvn test 2>&1 | tee test-output.log
