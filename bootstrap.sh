@@ -5,10 +5,11 @@
 # and local openmrs app, e.g., ~/openmrs
 # in an attempt to start with a clean slate.
 
-# Assumes:
+# Assumes (some of these assumptions are checked in the script)
 # - You have forked https://github.com/openmrs/openmrs-core.
 # - You have installed maven.
 # - You have installed and plan to use Docker.
+# - You have installed Java 21.
 # - You are running this script from the parent directory of your (to-be-created) local repo.
 # - Your github username is in a shell variable called $GITHUB_USERNAME.
 # - You are willing to wait (at least) a few minutes.
@@ -17,7 +18,17 @@ set -x
 if [ -z "$GITHUB_USERNAME" ] ; then
 	echo "Please set the GITHUB_USERNAME environment variable to your github username."
 	echo "Example: export GITHUB_USERNAME=chrisxkeith"
-	exit -665
+	exit -663
+fi
+java -version
+if [ $? -ne 0 ] ; then
+	echo "No java install detected."
+	exit -664
+fi
+v=`java -version 2>&1 | sed -E 's/.* version "([0-9]+).*/\1/'`
+if [ $v -ne 21 ] ; then
+  echo "Needs java 21, not $v"
+  exit -665
 fi
 mvn --version
 if [ $? -ne 0 ] ; then
