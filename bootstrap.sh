@@ -66,3 +66,9 @@ if [ $? -ne 0 ] ; then
 	exit -671
 fi
 cd openmrs-core
+# docker run -d --name mysql-container -e MYSQL_ROOT_PASSWORD=pass -p 3306:3306 mysql:latest
+# mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+# mvn openmrs-sdk:help
+# mvn openmrs-sdk:setup
+# ----- with input file
+# mvn openmrs-sdk:run -DserverId=server1
