@@ -1,8 +1,8 @@
 #! /bin/bash
 
 # DANGER !
-# This script deletes your current local repo
-# and local openmrs app, e.g., ~/openmrs
+# This script deletes a bunch of stuff, e.g., your current local repo,
+# local openmrs app, e.g., ~/openmrs, docker container, etc.,
 # in an attempt to start with a clean slate.
 
 # Assumes (some of these assumptions are checked in the script)
@@ -16,11 +16,20 @@
 
 set -x
 
+if [ -n "$CONTAINER_NAME" ] ; then
+	export CONTAINER_NAME=openmrs-sdk-mysql-v8-4-1
+fi
+
 # ------------------------------------------------------------
 # Verify environment and tools
 if [ -z "$GITHUB_USERNAME" ] ; then
 	echo "Please set the GITHUB_USERNAME environment variable to your github username."
 	echo "Example: export GITHUB_USERNAME=chrisxkeith"
+	exit -663
+fi
+if [ -z "$SETUP_INPUT_FILE" ] ; then
+	echo "Please set the SETUP_INPUT_FILE environment variable to the path of your input file."
+	echo "Example: export SETUP_INPUT_FILE=`pwd`/input.txt"
 	exit -663
 fi
 java -version
@@ -66,33 +75,48 @@ if [ -d "openmrs-core" ] ; then
 		exit -670
 	fi	
 fi
+containerId=`docker ps -a | grep $CONTAINER_NAME | awk '{print $1}'`
+if [ -n "$containerId" ] ; then
+	docker stop $containerId
+	# Don't care if it was already stopped, so don't check exit code.
+	docker rm $containerId
+	if [ $? -ne 0 ] ; then
+		echo "Failed to delete docker container."
+		exit -672
+	fi
+fi
+
+# ------------------------------------------------------------
+# Set up repo, mysql docker container and any other one-time setups.
 git clone https://github.com/${GITHUB_USERNAME}/openmrs-core.git
 if [ $? -ne 0 ] ; then
 	echo "Failed to clone repo."
 	exit -671
 fi
-
-# ------------------------------------------------------------
-# Set up mysql docker container and any other one-time setup tasks.
 cd openmrs-core
-docker run --detach --name openmrs-sdk-mysql-v8-4-1 --env MYSQL_ROOT_PASSWORD=yourSql -p "3306:3306" -v openmrs-data:/var/lib/mysql:z mysql:8.4.1 2>&1 | tee docker-run-output.log
+docker container create --name $CONTAINER_NAME --env MYSQL_ROOT_PASSWORD=yourSql -p "3306:3306" -v openmrs-data:/var/lib/mysql:z mysql:8.4.1 2>&1 | tee docker-create-output.log
 if [ $? -ne 0 ] ; then
-	echo "Failed to start mysql docker container."
+	echo "Failed to create mysql docker container."
 	exit -672
 fi
-cat docker-run-output.log | grep -i "Error" > docker-run-error.log
-errs=`cat docker-run-error.log | wc -l`
+cat docker-create-output.log | grep -i "Error" > docker-create-error.log
+errs=`cat docker-create-error.log | wc -l`
 if [ $errs -gt 0 ] ; then
-	echo "Error starting mysql docker container."
-	cat docker-run-error.log
+	echo "Error create mysql docker container."
+	cat docker-create-error.log
 	exit -673
 fi
-# mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk 2>&1 | tee setup-sdk-output.log
+# mvn openmrs-sdk:setup < $SETUP_INPUT_FILE 2>&1 | tee setup-sdk-setup-output.log
+# if [ $? -ne 0 ] ; then
+#	echo "Failed to setup openmrs-sdk."
+#	exit -672
+# fi
+
 # mvn openmrs-sdk:help  2>&1 | tee setup-sdk-help-output.log
 # mvn openmrs-sdk:setup < ../install_openmrs/input.txt 2>&1 | tee setup-sdk-input-output.log
 
 # ------------------------------------------------------------
 # Run run server, and run tests. Note that the first time you run these commands, they will take a long time as maven downloads dependencies and sets up the sdk. Subsequent runs will be faster.
-
+# docker run -d --name $CONTAINER_NAME 2>&1 | tee docker-run-output.log
 # mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
 # mvn test 2>&1 | tee test-output.log
