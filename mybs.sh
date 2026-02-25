@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# real    6m19.945s
+
 set -x
 export GITHUB_USERNAME=chrisxkeith
 export CONTAINER_NAME=openmrs-sdk-mysql-v8-4-1

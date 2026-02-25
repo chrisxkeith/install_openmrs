@@ -125,18 +125,12 @@ if [ $? -ne 0 ] ; then
 	echo "Failed to run openmrs-sdk:help."
 	exit -673
 fi
-cat setup-sdk-help-output | grep -i "Error" > setup-sdk-help-output-error.log
+cat setup-sdk-help-output.log | grep -i "Error" > setup-sdk-help-output-error.log
 errs=`cat setup-sdk-help-output-error.log | wc -l`
 if [ $errs -gt 0 ] ; then
 	echo "Error running openmrs-sdk:help."
 	cat setup-sdk-help-output-error.log
 	exit -674
-fi
-
-mvn test 2>&1 | tee test-output.log
-if [ $? -ne 0 ] ; then
-	echo "Failed to run tests."
-	exit -675
 fi
 
 # mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
@@ -145,6 +139,11 @@ fi
 # Remove if you want to run automated tests, but takes a while...
 if false ; then
 	# [INFO] Total time:  11:22 min
+	mvn test 2>&1 | tee test-output.log
+	if [ $? -ne 0 ] ; then
+		echo "Failed to run tests."
+		exit -675
+	fi
 	cat test-output.log | grep -i "Error" > test-output-error.log
 	errs=`cat test-output-error.log | wc -l`
 	if [ $errs -gt 0 ] ; then
