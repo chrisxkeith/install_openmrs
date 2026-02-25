@@ -139,6 +139,10 @@ if [ $? -ne 0 ] ; then
 	exit -675
 fi
 
+# mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
+# OpenMRS is ready for you at http://localhost:8080/openmrs/
+
+# Remove if you want to run automated tests, but takes a while...
 if false ; then
 	# [INFO] Total time:  11:22 min
 	cat test-output.log | grep -i "Error" > test-output-error.log
@@ -149,6 +153,3 @@ if false ; then
 		exit -676
 	fi
 fi
-
-# ------------------------------------------------------------
-# mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
