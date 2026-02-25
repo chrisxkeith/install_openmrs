@@ -119,13 +119,20 @@ if [ $? -ne 0 ] ; then
 	echo "Failed to setup openmrs-sdk."
 	exit -672
 fi
+cat setup-sdk-setup-output.log | grep -i "FAILURE" > setup-sdk-setup-output-error.log
+errs=`cat setup-sdk-setup-output-error.log | wc -l`
+if [ $errs -gt 0 ] ; then
+	echo "Error running openmrs-sdk:setup."
+	cat setup-sdk-setup-output-error.log
+	exit -674
+fi
 
 mvn openmrs-sdk:help  2>&1 | tee setup-sdk-help-output.log
 if [ $? -ne 0 ] ; then
 	echo "Failed to run openmrs-sdk:help."
 	exit -673
 fi
-cat setup-sdk-help-output.log | grep -i "Error" > setup-sdk-help-output-error.log
+cat setup-sdk-help-output.log | grep -i "FAILURE" > setup-sdk-help-output-error.log
 errs=`cat setup-sdk-help-output-error.log | wc -l`
 if [ $errs -gt 0 ] ; then
 	echo "Error running openmrs-sdk:help."
