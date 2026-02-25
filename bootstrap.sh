@@ -12,6 +12,7 @@
 # - You have installed Java 21.
 # - You are running this script from the parent directory of your (to-be-created) local repo.
 # - Your github username is in a shell variable called $GITHUB_USERNAME.
+# - You have an input file for the sdk setup for your specific setup, and the path to that file is in a shell variable called $SETUP_INPUT_FILE.
 # - You are willing to wait (at least) a few minutes.
 
 set -x
@@ -25,6 +26,11 @@ fi
 if [ -z "$GITHUB_USERNAME" ] ; then
 	echo "Please set the GITHUB_USERNAME environment variable to your github username."
 	echo "Example: export GITHUB_USERNAME=chrisxkeith"
+	exit -663
+fi
+if [ -z "$MYSQL_ROOT_PASSWORD" ] ; then
+	echo "Please set the MYSQL_ROOT_PASSWORD environment variable."
+	echo "Example: export MYSQL_ROOT_PASSWORD=<yourRootSqlPassword>"
 	exit -663
 fi
 if [ -z "$SETUP_INPUT_FILE" ] ; then
@@ -85,6 +91,7 @@ if [ -n "$containerId" ] ; then
 		exit -672
 	fi
 fi
+mvn openmrs-sdk:delete -DserverId=server1
 
 # ------------------------------------------------------------
 # Set up repo, mysql docker container and any other one-time setups.
@@ -94,7 +101,7 @@ if [ $? -ne 0 ] ; then
 	exit -671
 fi
 cd openmrs-core
-docker container create --name $CONTAINER_NAME --env MYSQL_ROOT_PASSWORD=yourSql -p "3306:3306" -v openmrs-data:/var/lib/mysql:z mysql:8.4.1 2>&1 | tee docker-create-output.log
+docker container create --name $CONTAINER_NAME --env MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD -p "3306:3306" -v openmrs-data:/var/lib/mysql:z mysql:8.4.1 2>&1 | tee docker-create-output.log
 if [ $? -ne 0 ] ; then
 	echo "Failed to create mysql docker container."
 	exit -672
@@ -106,11 +113,11 @@ if [ $errs -gt 0 ] ; then
 	cat docker-create-error.log
 	exit -673
 fi
-# mvn openmrs-sdk:setup < $SETUP_INPUT_FILE 2>&1 | tee setup-sdk-setup-output.log
-# if [ $? -ne 0 ] ; then
-#	echo "Failed to setup openmrs-sdk."
-#	exit -672
-# fi
+mvn openmrs-sdk:setup < $SETUP_INPUT_FILE 2>&1 | tee setup-sdk-setup-output.log
+if [ $? -ne 0 ] ; then
+	echo "Failed to setup openmrs-sdk."
+	exit -672
+fi
 
 # mvn openmrs-sdk:help  2>&1 | tee setup-sdk-help-output.log
 # mvn openmrs-sdk:setup < ../install_openmrs/input.txt 2>&1 | tee setup-sdk-input-output.log
