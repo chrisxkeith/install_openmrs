@@ -31,6 +31,7 @@ fi
 if [ -z "$MYSQL_ROOT_PASSWORD" ] ; then
 	echo "Please set the MYSQL_ROOT_PASSWORD environment variable."
 	echo "Example: export MYSQL_ROOT_PASSWORD=<yourRootSqlPassword>"
+	echo "Must be the same as in the input.txt file."
 	exit -663
 fi
 if [ -z "$SETUP_INPUT_FILE" ] ; then
@@ -119,11 +120,35 @@ if [ $? -ne 0 ] ; then
 	exit -672
 fi
 
-# mvn openmrs-sdk:help  2>&1 | tee setup-sdk-help-output.log
-# mvn openmrs-sdk:setup < ../install_openmrs/input.txt 2>&1 | tee setup-sdk-input-output.log
+mvn openmrs-sdk:help  2>&1 | tee setup-sdk-help-output.log
+if [ $? -ne 0 ] ; then
+	echo "Failed to run openmrs-sdk:help."
+	exit -673
+fi
+cat setup-sdk-help-output | grep -i "Error" > setup-sdk-help-output-error.log
+errs=`cat setup-sdk-help-output-error.log | wc -l`
+if [ $errs -gt 0 ] ; then
+	echo "Error running openmrs-sdk:help."
+	cat setup-sdk-help-output-error.log
+	exit -674
+fi
+
+mvn test 2>&1 | tee test-output.log
+if [ $? -ne 0 ] ; then
+	echo "Failed to run tests."
+	exit -675
+fi
+
+if false ; then
+	# [INFO] Total time:  11:22 min
+	cat test-output.log | grep -i "Error" > test-output-error.log
+	errs=`cat test-output-error.log | wc -l`
+	if [ $errs -gt 0 ] ; then
+		echo "Error running tests."
+		cat test-output-error.log
+		exit -676
+	fi
+fi
 
 # ------------------------------------------------------------
-# Run run server, and run tests. Note that the first time you run these commands, they will take a long time as maven downloads dependencies and sets up the sdk. Subsequent runs will be faster.
-# docker run -d --name $CONTAINER_NAME 2>&1 | tee docker-run-output.log
 # mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
-# mvn test 2>&1 | tee test-output.log
