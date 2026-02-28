@@ -6,14 +6,14 @@
 # in an attempt to start with a clean slate.
 
 # Assumes (some of these assumptions are checked in the script)
-# - You have forked https://github.com/openmrs/openmrs-core.
+# - You have forked https://github.com/openmrs/openmrs-core (and synced it)
 # - You have installed maven.
 # - You have installed and plan to use Docker.
 # - You have installed Java 21.
 # - You are running this script from the parent directory of your (to-be-created) local repo.
 # - Your github username is in a shell variable called $GITHUB_USERNAME.
 # - You have an input file for the sdk setup for your specific setup, and the path to that file is in a shell variable called $SETUP_INPUT_FILE.
-# - You are willing to wait (at least) a few minutes.
+# - You are willing to wait 15 - 20 minutes, e.g., 'real    16m45.030s'
 
 set -x
 
@@ -140,22 +140,18 @@ if [ $errs -gt 0 ] ; then
 	exit -674
 fi
 
-# mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log
-# OpenMRS is ready for you at http://localhost:8080/openmrs/
-
-# Remove if you want to run automated tests, but takes a while...
-if false ; then
-	# [INFO] Total time:  11:22 min
-	mvn test 2>&1 | tee test-output.log
-	if [ $? -ne 0 ] ; then
-		echo "Failed to run tests."
-		exit -675
-	fi
-	cat test-output.log | grep -i "Error" > test-output-error.log
-	errs=`cat test-output-error.log | wc -l`
-	if [ $errs -gt 0 ] ; then
-		echo "Error running tests."
-		cat test-output-error.log
-		exit -676
-	fi
+# 'mvn package' runs the tests, so this is a good sanity check to make sure everything is working before trying to run the server.
+mvn package 2>&1 | tee test-package-output.log
+if [ $? -ne 0 ] ; then
+	echo "Failed to run tests."
+	exit -675
 fi
+cat test-package-output.log | grep -i "Error" > test-package-output-error.log
+errs=`cat test-package-output-error.log | wc -l`
+if [ $errs -gt 0 ] ; then
+	echo "Error running mvn package."
+	cat test-package-output-error.log
+	exit -676
+fi
+
+echo "Now run: mvn openmrs-sdk:run -DserverId=server1 2>&1 | tee run-server1-output.log"
